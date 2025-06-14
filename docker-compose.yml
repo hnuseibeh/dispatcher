@@ -1,5 +1,17 @@
 version: "3.9"
 services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
   dispatcher:
     build:
       context: .
@@ -10,17 +22,39 @@ services:
       - ./prompts:/app/prompts
       - ./docs:/app/docs
       - ./lessons:/app/lessons
+      - ./sql:/app/sql
+      - ./ui/dispatcher:/app/ui/dispatcher
     environment:
-      - DB_URL=sqlite:///sql/zaki.db
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - db
+    restart: unless-stopped
+
   agent-runner:
     build:
       context: .
       dockerfile: Dockerfile.agent
-    depends_on:
-      - dispatcher
     volumes:
       - ./prompts:/app/prompts
       - ./docs:/app/docs
       - ./lessons:/app/lessons
+      - ./sql:/app/sql
+      - ./scripts:/app/scripts
     environment:
-      - DB_URL=sqlite:///sql/zaki.db
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./ui/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    # depends_on:
+    #   - dispatcher # Uncomment if startup order is important for API calls during frontend build or runtime
+
+volumes:
+  postgres_data:

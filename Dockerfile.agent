@@ -1,10 +1,23 @@
+# Dockerfile.agent
 FROM python:3.11-slim
+
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-COPY core /app/core
-COPY scripts /app/scripts
-COPY sql /app/sql
+# Install OS-level dependencies for psycopg2-binary
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    gcc \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-CMD ["python", "-m", "core.agent_runner"]
+# Assuming agent_runner shares requirements for now, or has its own
+COPY requirements-dev.txt requirements-dev.txt
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+COPY ./scripts /app/scripts
+COPY ./prompts /app/prompts
+COPY ./docs /app/docs
+COPY ./lessons /app/lessons
+
+ENV PYTHONPATH=/app
+CMD ["python", "scripts/agent_runner.py"]
