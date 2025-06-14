@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  dispatcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.dispatcher
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./prompts:/app/prompts
+      - ./docs:/app/docs
+      - ./lessons:/app/lessons
+    environment:
+      - DB_URL=sqlite:///sql/zaki.db
+  agent-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    depends_on:
+      - dispatcher
+    volumes:
+      - ./prompts:/app/prompts
+      - ./docs:/app/docs
+      - ./lessons:/app/lessons
+    environment:
+      - DB_URL=sqlite:///sql/zaki.db
